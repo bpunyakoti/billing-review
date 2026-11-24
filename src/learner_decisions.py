@@ -4,7 +4,7 @@ The graph is already wired. Finish these functions so each check stays in
 application code, not in the model. Keep the function names and the failure
 codes exactly as written. Use contracts.failed(...) for every failure.
 """
-from contracts import Settings, failed
+from .contracts import Settings, failed
 
 #class Settings:
 #    def __init__(self, max_model_calls=3, token_budget=6000, tokens_reserved_per_call=2000, approval_window=900):

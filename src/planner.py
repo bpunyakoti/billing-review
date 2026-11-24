@@ -2,7 +2,7 @@
 from langchain_core.runnables import RunnableLambda
 from pydantic import ValidationError
 
-from contracts import Proposal
+from .contracts import Proposal
 
 
 class ModelResult:
