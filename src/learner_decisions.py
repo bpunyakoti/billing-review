@@ -63,7 +63,7 @@ def check_access(principal, tenant_id: str):
         failed("ACCESS_DENIED", "Tenant ID mismatch")
 
     # Check if "case:read" permission exists
-    permissions = principal.permissions
+    permissions = principal("permissions",[])
     if "case:read" not in permissions:
         failed("ACCESS_DENIED", "Missing 'case:read' permission")
 
@@ -174,7 +174,7 @@ def approval_decision(principal, reply: dict, expected_hash: str, now: int, expi
         return failed("STALE_APPROVAL", "The proposal hash does not match the expected hash.")
 
     # 3. Check if principal has "task:approve" permission and tenant_id matches
-    if "task:approve" not in principal.permissions:
+    if "task:approve" not in principal("permissions", []):
         return failed("APPROVAL_FORBIDDEN", "The principal does not have 'task:approve' permission.")
     if principal.tenant_id != tenant_id:
         return failed("APPROVAL_FORBIDDEN", "The principal's tenant ID does not match.")
