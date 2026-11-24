@@ -44,7 +44,7 @@ def load_settings(values: dict | None = None) -> Settings:
         tokens_reserved_per_call=tokens_reserved_per_call,
         approval_window=approval_window,
     )
-    #raise NotImplementedError
+ 
 
 def failed(error_code, message):
     """Helper function to raise an exception with a specific error code and message."""
@@ -69,7 +69,7 @@ def check_access(principal, tenant_id: str):
 
     # Access is allowed
     return None
-    #raise NotImplementedError
+    
 
 
 def reserve_call(state: dict, settings: Settings) -> dict:
@@ -108,7 +108,7 @@ def reserve_call(state: dict, settings: Settings) -> dict:
         "reserved_tokens": reserved_tokens + settings.tokens_reserved_per_call,
         "status": "planning"
     }
-    #raise NotImplementedError
+    
 
 
 def validate_proposal(evidence: dict, proposal: dict):
@@ -143,7 +143,7 @@ def validate_proposal(evidence: dict, proposal: dict):
 
     # If all checks pass, return None
     return None
-    #raise NotImplementedError
+    
 
 
 def approval_decision(principal, reply: dict, expected_hash: str, now: int, expires_at: int, tenant_id: str) -> dict:
@@ -189,7 +189,7 @@ def approval_decision(principal, reply: dict, expected_hash: str, now: int, expi
 
     # 6. If approved is False, return rejection decision
     return {"ok": True, "decision": "rejected"}
-    #raise NotImplementedError
+    
 
 
 def action_key(tenant_id: str, request_id: str, proposal_hash: str) -> str:
@@ -201,7 +201,7 @@ def action_key(tenant_id: str, request_id: str, proposal_hash: str) -> str:
     """
      # Concatenate the inputs with colons
     return f"{tenant_id}:{request_id}:{proposal_hash}"
-    #raise NotImplementedError
+    
 
 
 class TaskLedger:
@@ -243,9 +243,9 @@ class TaskLedger:
         self._receipts.append(receipt)  # Maintain insertion order
 
         return receipt
-        #raise NotImplementedError
+        
 
     def all(self) -> list[dict]:
         """Return the receipts in insertion order."""
         return self._receipts
-        #raise NotImplementedError
+        
