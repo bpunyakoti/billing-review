@@ -43,10 +43,11 @@ def load_settings(values: dict | None = None) -> Settings:
 
     return Settings(
         max_model_calls=max_model_calls,
-        token_budget=token_budget,
-        tokens_reserved_per_call=tokens_reserved_per_call,
-        approval_window=approval_window,
+        total_token_budget=token_budget,
+        reserve_tokens=tokens_reserved_per_call,
+        approval_ttl_seconds=approval_window,
     )
+
  
 
 #def failed(error_code, message):
