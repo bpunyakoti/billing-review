@@ -30,13 +30,16 @@ def load_settings(values: dict | None = None) -> Settings:
     Missing keys keep the Settings defaults: 3 calls, 6000 token budget,
     2000 tokens reserved per call, and a 900 second approval window.
     """
-    max_model_calls = Settings.get("max_model_calls", 3)
+    if values is None:
+        values ={}
+
+    max_model_calls = values.get("max_model_calls", 3)
     if max_model_calls < 1:
         raise ValueError("max_model_calls must be at least 1")
 
-    token_budget = Settings.get("token_budget", 6000)
-    tokens_reserved_per_call =Settings.get("tokens_reserved_per_call", 2000)
-    approval_window = Settings.get("approval_window", 900)
+    token_budget = values.get("token_budget", 6000)
+    tokens_reserved_per_call =values.get("tokens_reserved_per_call", 2000)
+    approval_window = values.get("approval_window", 900)
 
     return Settings(
         max_model_calls=max_model_calls,
@@ -46,9 +49,9 @@ def load_settings(values: dict | None = None) -> Settings:
     )
  
 
-def failed(error_code, message):
-    """Helper function to raise an exception with a specific error code and message."""
-    raise Exception(f"{error_code}: {message}")
+#def failed(error_code, message):
+#    """Helper function to raise an exception with a specific error code and message."""
+#    raise Exception(f"{error_code}: {message}")
 
 
 def check_access(principal, tenant_id: str):
@@ -63,8 +66,8 @@ def check_access(principal, tenant_id: str):
         failed("ACCESS_DENIED", "Tenant ID mismatch")
 
     # Check if "case:read" permission exists
-    permissions = principal("permissions",[])
-    if "case:read" not in permissions:
+    #permissions = principal("permissions",[])
+    if "case:read" not in principal.permissions:
         failed("ACCESS_DENIED", "Missing 'case:read' permission")
 
     # Access is allowed
@@ -93,19 +96,19 @@ def reserve_call(state: dict, settings: Settings) -> dict:
     reserved_tokens = state.get("reserved_tokens", 0)
 
     # Check if model_calls exceeds the maximum allowed
-    if model_calls >= settings.max_model_calls:
-        failed("ITERATION_LIMIT", f"Maximum model calls ({settings.max_model_calls}) reached.")
+    if model_calls >= Settings.max_model_calls:
+        failed("ITERATION_LIMIT", f"Maximum model calls ({Settings.max_model_calls}) reached.")
 
     # Check if reserved_tokens exceeds the token budget
-    if reserved_tokens + settings.tokens_reserved_per_call > settings.token_budget:
+    if reserved_tokens + settings.tokens_reserved_per_call > Settings.token_budget:
         failed("TOKEN_BUDGET", f"Token budget exceeded. Current: {reserved_tokens}, "
-                                f"Attempted: {reserved_tokens + settings.tokens_reserved_per_call}, "
-                                f"Limit: {settings.token_budget}.")
+                                f"Attempted: {reserved_tokens + Settings.tokens_reserved_per_call}, "
+                                f"Limit: {Settings.token_budget}.")
 
     # Increment counters and return the updated state
     return {
         "model_calls": model_calls + 1,
-        "reserved_tokens": reserved_tokens + settings.tokens_reserved_per_call,
+        "reserved_tokens": reserved_tokens + Settings.tokens_reserved_per_call,
         "status": "planning"
     }
     
@@ -127,7 +130,8 @@ def validate_proposal(evidence: dict, proposal: dict):
     # Check if the action is "create_review_task"
     if proposal.get("action") != "create_review_task":
         failed("EVIDENCE_MISMATCH", "Action must be 'create_review_task'.")
-
+    case_id = evidence.get("case_id")
+    invoice_id = evidence.get("invoice_id")
     # Check if case_id matches
     if proposal.get("case_id") != evidence.get("case_id"):
         failed("EVIDENCE_MISMATCH", "Case ID does not match.")
@@ -137,7 +141,7 @@ def validate_proposal(evidence: dict, proposal: dict):
         failed("EVIDENCE_MISMATCH", "Invoice ID does not match.")
 
     # Check if both identifiers appear in evidence_refs
-    evidence_refs = proposal.get("evidence_refs", [])
+    evidence_refs = proposal.get("evidence_refs")
     if not (evidence.get("case_id") in evidence_refs and evidence.get("invoice_id") in evidence_refs):
         failed("EVIDENCE_MISMATCH", "Identifiers are missing from evidence_refs.")
 
@@ -167,21 +171,21 @@ def approval_decision(principal, reply: dict, expected_hash: str, now: int, expi
     """
      # 1. Check if reply["approved"] is a real boolean
     if not isinstance(reply.get("approved"), bool):
-        return failed("INVALID_APPROVAL", "The 'approved' field must be a boolean.")
+        return {"ok":False,"failure":failed("INVALID_APPROVAL", "The 'approved' field must be a boolean.")}
 
     # 2. Check if reply["proposal_hash"] matches expected_hash
     if reply.get("proposal_hash") != expected_hash:
-        return failed("STALE_APPROVAL", "The proposal hash does not match the expected hash.")
+        return {"ok":False,"failure":failed("STALE_APPROVAL", "The proposal hash does not match the expected hash.")}
 
     # 3. Check if principal has "task:approve" permission and tenant_id matches
-    if "task:approve" not in principal("permissions", []):
-        return failed("APPROVAL_FORBIDDEN", "The principal does not have 'task:approve' permission.")
+    if "task:approve" not in principal.permissions:
+        return {"ok":False,"failure":failed("APPROVAL_FORBIDDEN", "The principal does not have 'task:approve' permission.")}
     if principal.tenant_id != tenant_id:
-        return failed("APPROVAL_FORBIDDEN", "The principal's tenant ID does not match.")
+        return {"ok":False,"failure":failed("APPROVAL_FORBIDDEN", "The principal's tenant ID does not match.")}
 
     # 4. Check if the approval has expired
     if now >= expires_at:
-        return failed("APPROVAL_EXPIRED", "The approval has expired.")
+        return {"ok":False,"failure":failed("APPROVAL_EXPIRED", "The approval has expired.")}
 
     # 5. If approved is True, return approval decision
     if reply["approved"]:
@@ -242,10 +246,10 @@ class TaskLedger:
         self._rows[key] = {"payload": payload, "receipt": receipt}
         self._receipts.append(receipt)  # Maintain insertion order
 
-        return receipt
+        return dict(receipt)
         
 
     def all(self) -> list[dict]:
         """Return the receipts in insertion order."""
-        return self._receipts
+        return [dict(receipt) for receipt in self._receipts]
         
